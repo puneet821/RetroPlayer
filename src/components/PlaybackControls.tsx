@@ -17,12 +17,12 @@ const PlaybackControls: React.FC = () => {
       </button>
       
       <div className="right-controls">
-        <button className="control-group" onClick={playPrevious}>
+        <button className="control-group" onClick={() => playPrevious()}>
           <div className="pill-btn small-pill"></div>
           <SkipBack size={18} className="control-icon" fill="currentColor" />
         </button>
         
-        <button className="control-group" onClick={playNext}>
+        <button className="control-group" onClick={() => playNext()}>
           <div className="pill-btn small-pill"></div>
           <SkipForward size={18} className="control-icon" fill="currentColor" />
         </button>
