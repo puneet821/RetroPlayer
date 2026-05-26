@@ -14,8 +14,6 @@ import PlaylistStack from './components/PlaylistStack';
 import { Settings, Menu, Search, Library, Plus } from 'lucide-react';
 import AddToPlaylistModal from './components/AddToPlaylistModal';
 import { updateMediaSessionWithVinyl } from './services/mediaSession';
-import { initAudioEngine } from './services/audioEngine';
-import Equalizer from './components/Equalizer';
 import './App.css';
 
 function App() {
@@ -230,10 +228,7 @@ function App() {
           if (audioRef.current) setDuration(audioRef.current.duration);
         }}
         onEnded={() => usePlayerStore.getState().playNext(audioRef.current || undefined)}
-        onPlay={() => {
-          if (audioRef.current) initAudioEngine(audioRef.current);
-          usePlayerStore.setState({ isPlaying: true });
-        }}
+        onPlay={() => usePlayerStore.setState({ isPlaying: true })}
         onPause={() => usePlayerStore.setState({ isPlaying: false })}
       />
 
@@ -308,7 +303,6 @@ function App() {
             <span className="time">{formatTime(duration)}</span>
           </div>
 
-          <Equalizer />
           <PlaybackControls />
         </div>
       </main>
