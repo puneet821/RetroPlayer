@@ -134,66 +134,73 @@ function App() {
     }
   }, [spotifyToken, setPlaylists, setSpotifyToken]);
 
-  // Handle Play/Pause synchronization
+  // Direct audio sync via store subscription (works in background unlike React useEffect)
   useEffect(() => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.play().catch(e => console.warn('Playback prevented', e));
-      } else {
-        audioRef.current.pause();
-      }
-    }
-  }, [isPlaying]);
+    let prevTrackUrl = '';
+    let prevIsPlaying = false;
 
-  // Re-sync audio when returning from background (mobile browsers pause audio silently)
+    const unsub = usePlayerStore.subscribe((state) => {
+      const audio = audioRef.current;
+      if (!audio) return;
+
+      // Track changed — load new source
+      if (state.currentTrack && state.currentTrack.url !== prevTrackUrl) {
+        prevTrackUrl = state.currentTrack.url;
+        audio.src = state.currentTrack.url;
+        audio.load();
+        if (state.isPlaying) {
+          audio.play().catch(e => console.warn('Playback prevented', e));
+        }
+        // Update lock screen artwork
+        updateMediaSessionWithVinyl(state.currentTrack.title, state.currentTrack.artist, state.currentTrack.artwork);
+      }
+
+      // Play/pause changed
+      if (state.isPlaying !== prevIsPlaying) {
+        prevIsPlaying = state.isPlaying;
+        if (state.isPlaying) {
+          audio.play().catch(e => console.warn('Playback prevented', e));
+        } else {
+          audio.pause();
+        }
+      }
+
+      // Seek requested
+      if (state.requestedSeekTime !== null) {
+        audio.currentTime = state.requestedSeekTime;
+        setPosition(state.requestedSeekTime);
+        usePlayerStore.getState().requestSeek(null);
+      }
+    });
+
+    return () => unsub();
+  }, [setPosition]);
+
+  // Re-sync audio when returning from background
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && audioRef.current) {
-        const storeState = usePlayerStore.getState();
-        if (storeState.isPlaying) {
-          // Audio was supposed to be playing — check if the browser silently paused it
-          if (audioRef.current.paused) {
-            audioRef.current.play().catch(e => {
-              console.warn('Resume after background failed', e);
-              // If we can't resume, sync state to paused
-              usePlayerStore.getState().pause();
-            });
-          }
-          // Sync position to actual audio position
-          setPosition(audioRef.current.currentTime);
+        const state = usePlayerStore.getState();
+        if (state.isPlaying && audioRef.current.paused) {
+          audioRef.current.play().catch(e => {
+            console.warn('Resume after background failed', e);
+            usePlayerStore.getState().pause();
+          });
         }
+        if (state.currentTrack && audioRef.current.src !== state.currentTrack.url) {
+          audioRef.current.src = state.currentTrack.url;
+          audioRef.current.load();
+          if (state.isPlaying) {
+            audioRef.current.play().catch(e => console.warn('Playback prevented', e));
+          }
+        }
+        setPosition(audioRef.current.currentTime);
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [setPosition]);
-
-  // Handle Seek synchronization
-  const requestedSeekTime = usePlayerStore((state) => state.requestedSeekTime);
-  const requestSeek = usePlayerStore((state) => state.requestSeek);
-
-  useEffect(() => {
-    if (requestedSeekTime !== null && audioRef.current) {
-      audioRef.current.currentTime = requestedSeekTime;
-      setPosition(requestedSeekTime);
-      requestSeek(null);
-    }
-  }, [requestedSeekTime, setPosition, requestSeek]);
-
-  // Handle track source change
-  useEffect(() => {
-    if (audioRef.current && currentTrack) {
-      if (audioRef.current.src !== currentTrack.url) {
-        audioRef.current.src = currentTrack.url;
-        if (isPlaying) {
-          audioRef.current.play().catch(e => console.warn('Playback prevented', e));
-        }
-      }
-      // Push vinyl artwork to lock screen
-      updateMediaSessionWithVinyl(currentTrack.title, currentTrack.artist, currentTrack.artwork);
-    }
-  }, [currentTrack, isPlaying]);
 
   const formatTime = (time: number) => {
     if (!time || isNaN(time)) return '0:00';
