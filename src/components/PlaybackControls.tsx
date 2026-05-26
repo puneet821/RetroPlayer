@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Pause, SkipBack, SkipForward } from 'lucide-react';
+import { SkipBack, SkipForward } from 'lucide-react';
 import { usePlayerStore } from '../stores/usePlayerStore';
 import './PlaybackControls.css';
 
