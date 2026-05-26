@@ -1,0 +1,137 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@400;600&display=swap');
+
+:root {
+  --font-sans: 'Inter', sans-serif;
+  --font-display: 'Outfit', sans-serif;
+  
+  /* Default Theme (Dark) */
+  --bg-primary: #121212;
+  --bg-secondary: #1e1e1e;
+  --bg-gradient-start: #2c3e50;
+  --bg-gradient-end: #000000;
+  
+  --text-primary: #ffffff;
+  --text-secondary: #a0a0a0;
+  --accent: #e74c3c;
+  --accent-hover: #c0392b;
+
+  --border-color: rgba(255, 255, 255, 0.1);
+  --glass-bg: rgba(30, 30, 30, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.08);
+}
+
+/* Theme Classes */
+.theme-light {
+  --bg-primary: #f5f5f7;
+  --bg-secondary: #ffffff;
+  --bg-gradient-start: #e0eafc;
+  --bg-gradient-end: #cfdef3;
+  --text-primary: #1c1c1e;
+  --text-secondary: #8e8e93;
+  --accent: #007aff;
+  --accent-hover: #0056b3;
+  --border-color: rgba(0, 0, 0, 0.1);
+  --glass-bg: rgba(255, 255, 255, 0.6);
+  --glass-border: rgba(0, 0, 0, 0.08);
+}
+
+.theme-neon {
+  --bg-primary: #09090b;
+  --bg-secondary: #18181b;
+  --bg-gradient-start: #270722;
+  --bg-gradient-end: #050510;
+  --text-primary: #e2e8f0;
+  --text-secondary: #a1a1aa;
+  --accent: #f0abfc;
+  --accent-hover: #e879f9;
+  --border-color: rgba(240, 171, 252, 0.2);
+  --glass-bg: rgba(24, 24, 27, 0.7);
+  --glass-border: rgba(240, 171, 252, 0.15);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-primary);
+  background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+  color: var(--text-primary);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  transition: background 0.5s ease, color 0.5s ease;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+  max-width: 480px; /* Constrain to mobile width on desktop */
+  margin: 0 auto;
+  position: relative;
+  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+  background: var(--bg-primary);
+}
+
+/* Glassmorphism utilities */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+}
+
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+}
+
+/* Animations */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 4s linear infinite;
+}
+
+.spin-slow {
+  animation: spin 8s linear infinite;
+}
+
+.paused {
+  animation-play-state: paused !important;
+}
+
+/* Base UI Elements */
+button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:active {
+  transform: scale(0.95);
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  #root {
+    box-shadow: none;
+    border-radius: 0;
+  }
+}

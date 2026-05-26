@@ -1,0 +1,78 @@
+.theme-picker-container {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 100;
+}
+
+.theme-toggle-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+}
+
+.theme-toggle-btn:hover {
+  color: var(--accent);
+  transform: rotate(15deg);
+}
+
+.theme-menu {
+  position: absolute;
+  top: 54px;
+  right: 0;
+  width: 140px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.theme-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.2s;
+  color: var(--text-primary);
+}
+
+.theme-option:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.theme-option.active {
+  background: rgba(255,255,255,0.15);
+  color: var(--accent);
+}
+
+.theme-color-preview {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+/* Light mode overrides for theme menu */
+.theme-light .theme-option:hover {
+  background: rgba(0,0,0,0.05);
+}
+.theme-light .theme-option.active {
+  background: rgba(0,0,0,0.1);
+}
+.theme-light .theme-color-preview {
+  border-color: rgba(0,0,0,0.2);
+}
