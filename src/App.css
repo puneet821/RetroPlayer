@@ -100,7 +100,7 @@
   flex-direction: column;
   align-items: flex-start;
   z-index: 50;
-  padding: 0 20px 30px 20px;
+  padding: 0 20px 5px 20px;
 }
 
 .turntable-wrapper {
@@ -121,7 +121,7 @@
 
 .track-info {
   text-align: left;
-  margin-bottom: 20px;
+  margin-bottom: 5px;
   padding: 0 10px;
   width: 100%;
 }
@@ -148,7 +148,7 @@
   align-items: center;
   width: 100%;
   padding: 0 10px;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 .time {
