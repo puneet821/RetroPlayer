@@ -32,6 +32,8 @@ const PlaylistStack: React.FC = () => {
         usePlayerStore.getState().setSpotifyToken(null);
         localStorage.removeItem('spotify_access_token');
         alert("Spotify permissions missing or expired. Please click 'Connect Spotify' again to grant playlist access.");
+      } else if (err.message?.includes('Forbidden') || err.message?.includes('403')) {
+        alert("Spotify Error: Forbidden.\n\nBecause your Spotify App is in 'Development Mode', Spotify strictly blocks you from opening playlists created by other people or by Spotify itself.\n\nTry opening a playlist that YOU created!");
       } else {
         alert(err.message || "Failed to load tracks. The playlist might be empty or private.");
       }
