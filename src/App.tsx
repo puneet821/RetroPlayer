@@ -13,7 +13,7 @@ import { Settings, Menu } from 'lucide-react';
 import './App.css';
 
 function App() {
-  const { currentTrack, setTrack, isPlaying, play, pause, setPosition, setDuration, position, duration, setSpotifyToken } = usePlayerStore();
+  const { currentTrack, setTrack, isPlaying, pause, setPosition, setDuration, position, duration, setSpotifyToken } = usePlayerStore();
   const activeTheme = useThemeStore((state) => state.activeTheme);
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const [showConnectionModal, setShowConnectionModal] = React.useState(false);

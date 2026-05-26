@@ -65,7 +65,7 @@ export const searchSongs = async (query: string, limit = 10): Promise<Track[]> =
           else if (Array.isArray(data.results)) raw = data.results;
           else continue;
 
-          const tracks = raw.map(formatSongToTrack).filter(t => t.url);
+          const tracks = raw.map(formatSongToTrack).filter((t: any) => t.url);
           if (tracks.length) return tracks;
       } catch (e) {
           lastErr = e;

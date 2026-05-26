@@ -34,10 +34,6 @@ const base64encode = (input: ArrayBuffer) => {
 };
 
 export const initiateSpotifyLogin = async () => {
-  if (CLIENT_ID === 'YOUR_SPOTIFY_CLIENT_ID') {
-    alert('Please set your Spotify Client ID in src/services/spotifyAuth.ts first!');
-    return;
-  }
   const codeVerifier = generateRandomString(64);
   window.localStorage.setItem('code_verifier', codeVerifier);
   const hashed = await sha256(codeVerifier);
