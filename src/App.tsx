@@ -17,7 +17,7 @@ import { updateMediaSessionWithVinyl } from './services/mediaSession';
 import './App.css';
 
 function App() {
-  const { currentTrack, setTrack, isPlaying, setPosition, setDuration, position, duration, spotifyToken, setSpotifyToken, setPlaylists, isPlaylistViewOpen, setIsPlaylistViewOpen } = usePlayerStore();
+  const { currentTrack, setTrack, setPosition, setDuration, position, duration, spotifyToken, setSpotifyToken, setPlaylists, isPlaylistViewOpen, setIsPlaylistViewOpen } = usePlayerStore();
   const activeTheme = useThemeStore((state) => state.activeTheme);
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const [showConnectionModal, setShowConnectionModal] = React.useState(false);
