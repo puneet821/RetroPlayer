@@ -25,8 +25,14 @@ const PlaylistStack: React.FC = () => {
       const fetchedTracks = await fetchPlaylistTracks(spotifyToken, playlist.id);
       setTracks(fetchedTracks);
       setSelectedPlaylist(playlist);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      if (err.message?.includes('expired') || err.message?.includes('401')) {
+        usePlayerStore.getState().setSpotifyToken(null);
+        localStorage.removeItem('spotify_access_token');
+      } else {
+        alert("Failed to load tracks. The playlist might be empty or private.");
+      }
     } finally {
       setLoadingId(null);
     }

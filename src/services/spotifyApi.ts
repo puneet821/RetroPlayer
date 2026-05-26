@@ -43,6 +43,9 @@ export const fetchPlaylistTracks = async (token: string, playlistId: string): Pr
     });
     
     if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Spotify session expired.');
+      }
       throw new Error('Failed to fetch playlist tracks');
     }
 

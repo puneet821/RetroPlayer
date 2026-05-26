@@ -74,9 +74,15 @@ function App() {
     if (spotifyToken) {
       fetchUserPlaylists(spotifyToken)
         .then(data => setPlaylists(data))
-        .catch(err => console.error(err));
+        .catch(err => {
+          console.error("Failed to fetch playlists:", err);
+          if (err.message?.includes('expired') || err.message?.includes('401')) {
+            setSpotifyToken(null);
+            localStorage.removeItem('spotify_access_token');
+          }
+        });
     }
-  }, [spotifyToken, setPlaylists]);
+  }, [spotifyToken, setPlaylists, setSpotifyToken]);
 
   // Handle Play/Pause synchronization
   useEffect(() => {
