@@ -1,7 +1,8 @@
 import React from 'react';
 import { usePlayerStore } from '../stores/usePlayerStore';
-import { fetchPlaylistTracks } from '../services/spotifyApi';
+import { fetchPlaylistTracks, SpotifyPlaylist } from '../services/spotifyApi';
 import { initiateSpotifyLogin } from '../services/spotifyAuth';
+import { playSpotifyTrackViaSaavn } from '../services/api';
 import './PlaylistStack.css';
 import { X, Play } from 'lucide-react';
 
@@ -12,27 +13,52 @@ const colors = [
 const PlaylistStack: React.FC = () => {
   const { playlists, spotifyToken, setTrack, setIsPlaylistViewOpen: closeView } = usePlayerStore();
   const [loadingId, setLoadingId] = React.useState<string | null>(null);
+  const [selectedPlaylist, setSelectedPlaylist] = React.useState<SpotifyPlaylist | null>(null);
+  const [tracks, setTracks] = React.useState<any[]>([]);
+  const [playingTrackId, setPlayingTrackId] = React.useState<string | null>(null);
 
-  const handlePlayPlaylist = async (playlistId: string) => {
+  const handleSelectPlaylist = async (playlist: SpotifyPlaylist) => {
     if (!spotifyToken) return;
-    setLoadingId(playlistId);
+    setLoadingId(playlist.id);
     try {
-      const tracks = await fetchPlaylistTracks(spotifyToken, playlistId);
-      if (tracks.length > 0) {
-        const firstTrack = tracks[0].track;
-        setTrack({
-          id: firstTrack.id,
-          title: firstTrack.name,
-          artist: firstTrack.artists.map((a: any) => a.name).join(', '),
-          artwork: firstTrack.album.images[0]?.url || '',
-          url: firstTrack.preview_url || '', // We might need Saavn fallback here later if no preview
-        });
-        closeView(false);
-      }
+      const fetchedTracks = await fetchPlaylistTracks(spotifyToken, playlist.id);
+      setTracks(fetchedTracks);
+      setSelectedPlaylist(playlist);
     } catch (err) {
       console.error(err);
     } finally {
       setLoadingId(null);
+    }
+  };
+
+  const handlePlayTrack = async (trackItem: any) => {
+    const t = trackItem.track;
+    if (!t) return;
+    setPlayingTrackId(t.id);
+    
+    try {
+      if (t.preview_url) {
+        setTrack({
+          id: t.id,
+          title: t.name,
+          artist: t.artists.map((a: any) => a.name).join(', '),
+          artwork: t.album.images[0]?.url || '',
+          url: t.preview_url,
+        });
+        closeView(false);
+      } else {
+        // Fallback to Saavn search to get full audio
+        const artistName = t.artists[0]?.name || '';
+        const artwork = t.album.images[0]?.url || '';
+        const saavnTrack = await playSpotifyTrackViaSaavn(t.name, artistName, artwork);
+        setTrack(saavnTrack);
+        closeView(false);
+      }
+    } catch (err) {
+      alert("Could not find audio for this track.");
+      console.error(err);
+    } finally {
+      setPlayingTrackId(null);
     }
   };
 
@@ -57,36 +83,71 @@ const PlaylistStack: React.FC = () => {
         <X size={24} />
       </button>
       
-      <div className="perspective-container">
-        <div className="stack-wrapper">
-          {playlists.map((playlist, index) => {
-            const edgeColor = colors[index % colors.length];
-            return (
-              <div 
-                key={playlist.id} 
-                className="playlist-card-3d"
-                style={{ 
-                  '--edge-color': edgeColor
-                } as React.CSSProperties}
-                data-title={playlist.name}
-                onClick={() => handlePlayPlaylist(playlist.id)}
-              >
-                <div className="card-face main-face">
-                  <img src={playlist.images[0]?.url} alt={playlist.name} />
-                  {loadingId === playlist.id && (
-                    <div className="loading-overlay">
-                      <div className="spinner"></div>
-                    </div>
+      {selectedPlaylist ? (
+        <div className="playlist-detail-view">
+          <div className="playlist-detail-header glass">
+            <button className="back-btn" onClick={() => setSelectedPlaylist(null)}>
+              &larr; Back
+            </button>
+            <img src={selectedPlaylist.images[0]?.url} alt="" className="detail-cover" />
+            <div className="detail-info">
+              <h2>{selectedPlaylist.name}</h2>
+              <p>{selectedPlaylist.tracks.total} tracks</p>
+            </div>
+          </div>
+          <div className="track-list">
+            {tracks.map((item, i) => {
+              const t = item.track;
+              if (!t) return null;
+              return (
+                <div key={t.id + i} className="track-item glass" onClick={() => handlePlayTrack(item)}>
+                  <img src={t.album.images[2]?.url || t.album.images[0]?.url} alt="" className="track-thumb" />
+                  <div className="track-info-list">
+                    <div className="track-name">{t.name}</div>
+                    <div className="track-artists">{t.artists.map((a: any) => a.name).join(', ')}</div>
+                  </div>
+                  {playingTrackId === t.id ? (
+                    <div className="spinner small-spinner"></div>
+                  ) : (
+                    <Play size={20} className="track-play-icon" />
                   )}
-                  <div className="play-overlay">
-                    <Play size={40} fill="white" />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <div className="perspective-container">
+          <div className="stack-wrapper">
+            {playlists.map((playlist, index) => {
+              const edgeColor = colors[index % colors.length];
+              return (
+                <div 
+                  key={playlist.id} 
+                  className="playlist-card-3d"
+                  style={{ 
+                    '--edge-color': edgeColor
+                  } as React.CSSProperties}
+                  data-title={playlist.name}
+                  onClick={() => handleSelectPlaylist(playlist)}
+                >
+                  <div className="card-face main-face">
+                    <img src={playlist.images[0]?.url} alt={playlist.name} />
+                    {loadingId === playlist.id && (
+                      <div className="loading-overlay">
+                        <div className="spinner"></div>
+                      </div>
+                    )}
+                    <div className="play-overlay">
+                      <Play size={40} fill="white" />
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
