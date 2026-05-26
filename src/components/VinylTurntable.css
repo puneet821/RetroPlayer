@@ -27,7 +27,8 @@
   max-width: 780px;
   max-height: 780px;
   border-radius: 50%;
-  background: url('/vinyl_splatter.png') center/cover no-repeat;
+  background: url('/vinyl_splatter.png') center/cover no-repeat, radial-gradient(circle, rgba(90, 140, 180, 0.5) 0%, rgba(30, 80, 130, 0.7) 80%, rgba(10, 40, 80, 0.9) 100%);
+  backdrop-filter: blur(8px);
   position: relative;
   display: flex;
   justify-content: center;
