@@ -117,8 +117,15 @@ function App() {
     setPosition(newTime);
   };
 
+  const backgroundStyle: React.CSSProperties = currentTrack?.artwork ? {
+    backgroundImage: `linear-gradient(to bottom, rgba(15, 20, 25, 0.4), rgba(15, 20, 25, 0.95)), url(${currentTrack.artwork})`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundAttachment: 'fixed',
+  } : {};
+
   return (
-    <div className="app-container">
+    <div className="app-container" style={backgroundStyle}>
       <div className="top-actions">
         <button className="settings-btn glass" onClick={() => setShowSideMenu(true)} style={{ marginRight: 'auto' }}>
           <Menu size={20} />
