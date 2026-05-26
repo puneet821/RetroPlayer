@@ -22,7 +22,7 @@ const PlaylistStack: React.FC = () => {
     if (!spotifyToken) return;
     setLoadingId(playlist.id);
     try {
-      const fetchedTracks = await fetchPlaylistTracks(spotifyToken, playlist.tracks.href || playlist.id);
+      const fetchedTracks = await fetchPlaylistTracks(spotifyToken, playlist.tracks?.href || playlist.id);
       setTracks(fetchedTracks);
       setSelectedPlaylist(playlist);
     } catch (err: any) {
