@@ -14,10 +14,11 @@ import PlaylistStack from './components/PlaylistStack';
 import { Settings, Menu, Search, Library, Plus } from 'lucide-react';
 import AddToPlaylistModal from './components/AddToPlaylistModal';
 import { updateMediaSessionWithVinyl } from './services/mediaSession';
+import { initializeAudioPipeline, setEqualizerPreset } from './services/audioManager';
 import './App.css';
 
 function App() {
-  const { currentTrack, setTrack, setPosition, setDuration, position, duration, spotifyToken, setSpotifyToken, setPlaylists, isPlaylistViewOpen, setIsPlaylistViewOpen } = usePlayerStore();
+  const { currentTrack, setTrack, setPosition, setDuration, position, duration, spotifyToken, setSpotifyToken, setPlaylists, isPlaylistViewOpen, setIsPlaylistViewOpen, eqMode, setEqMode } = usePlayerStore();
   const activeTheme = useThemeStore((state) => state.activeTheme);
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const [showConnectionModal, setShowConnectionModal] = React.useState(false);
@@ -143,6 +144,10 @@ function App() {
       const audio = audioRef.current;
       if (!audio) return;
 
+      // Initialize Web Audio API pipeline
+      initializeAudioPipeline(audio);
+      setEqualizerPreset(state.eqMode);
+
       // Track changed — load new source
       if (state.currentTrack && state.currentTrack.url !== prevTrackUrl) {
         prevTrackUrl = state.currentTrack.url;
@@ -175,6 +180,14 @@ function App() {
 
     return () => unsub();
   }, [setPosition]);
+
+  // Sync Equalizer preset state changes
+  useEffect(() => {
+    if (audioRef.current) {
+      initializeAudioPipeline(audioRef.current);
+      setEqualizerPreset(eqMode);
+    }
+  }, [eqMode]);
 
   // Re-sync audio when returning from background
   useEffect(() => {
@@ -221,6 +234,7 @@ function App() {
     <div className="app-container">
       <audio 
         ref={audioRef}
+        crossOrigin="anonymous"
         onTimeUpdate={() => {
           if (audioRef.current) setPosition(audioRef.current.currentTime);
         }}
@@ -282,6 +296,37 @@ function App() {
               )}
             </div>
             <p className="track-artist">{currentTrack?.artist || 'Unknown Artist'}</p>
+            
+            <div className="eq-container glass">
+              <button 
+                className={`eq-btn ${eqMode === 'flat' ? 'active' : ''}`}
+                onClick={() => setEqMode('flat')}
+              >
+                <span className="eq-btn-dot"></span>
+                Flat
+              </button>
+              <button 
+                className={`eq-btn ${eqMode === 'bass' ? 'active' : ''}`}
+                onClick={() => setEqMode('bass')}
+              >
+                <span className="eq-btn-dot"></span>
+                Bass
+              </button>
+              <button 
+                className={`eq-btn ${eqMode === 'reverb' ? 'active' : ''}`}
+                onClick={() => setEqMode('reverb')}
+              >
+                <span className="eq-btn-dot"></span>
+                Reverb
+              </button>
+              <button 
+                className={`eq-btn ${eqMode === 'hall' ? 'active' : ''}`}
+                onClick={() => setEqMode('hall')}
+              >
+                <span className="eq-btn-dot"></span>
+                Hall
+              </button>
+            </div>
           </div>
 
           <div className="progress-container">

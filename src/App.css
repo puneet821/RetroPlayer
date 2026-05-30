@@ -193,3 +193,68 @@
   border-radius: 3px;
   pointer-events: none;
 }
+
+/* Glass Equalizer Styles */
+.eq-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  margin-bottom: 8px;
+  padding: 4px 6px;
+  border-radius: 20px;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.eq-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  background: transparent;
+}
+
+.eq-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.theme-light .eq-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.eq-btn.active {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.theme-light .eq-btn.active {
+  background: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+.eq-btn-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.theme-light .eq-btn-dot {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.eq-btn.active .eq-btn-dot {
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+}

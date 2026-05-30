@@ -49,6 +49,8 @@ interface PlayerState {
   setIsSeeking: (isSeeking: boolean) => void;
   requestedSeekTime: number | null;
   requestSeek: (time: number | null) => void;
+  eqMode: 'flat' | 'bass' | 'reverb' | 'hall';
+  setEqMode: (mode: 'flat' | 'bass' | 'reverb' | 'hall') => void;
   
   // Queue Management
   currentQueue: Track[];
@@ -82,9 +84,11 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   duration: 0,
   isSeeking: false,
   requestedSeekTime: null,
+  eqMode: 'flat',
   
   setSpotifyToken: (token) => set({ spotifyToken: token }),
   setPlaylists: (playlists) => set({ playlists }),
+  setEqMode: (eqMode) => set({ eqMode }),
   
   createCustomPlaylist: (name) => set((state) => {
     const newPlaylist: CustomPlaylist = {
