@@ -144,10 +144,6 @@ function App() {
       const audio = audioRef.current;
       if (!audio) return;
 
-      // Initialize Web Audio API pipeline
-      initializeAudioPipeline(audio);
-      setEqualizerPreset(state.eqMode);
-
       // Track changed — load new source
       if (state.currentTrack && state.currentTrack.url !== prevTrackUrl) {
         prevTrackUrl = state.currentTrack.url;

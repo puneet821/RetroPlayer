@@ -66,6 +66,10 @@ export function initializeAudioPipeline(audioElement: HTMLAudioElement) {
   }
 }
 
+// Cache variables to prevent repeated heavy procedural buffer generation
+let cachedReverbBuffer: AudioBuffer | null = null;
+let cachedHallBuffer: AudioBuffer | null = null;
+
 export function setEqualizerPreset(mode: 'flat' | 'bass' | 'reverb' | 'hall') {
   if (!audioContext || !bassFilterNode || !dryGainNode || !wetGainNode) {
     return;
@@ -111,7 +115,10 @@ export function setEqualizerPreset(mode: 'flat' | 'bass' | 'reverb' | 'hall') {
       
       // Dynamically instantiate new convolver with warm room IR
       convolverNode = audioContext.createConvolver();
-      convolverNode.buffer = createImpulseResponse(audioContext, 1.8, 1.1);
+      if (!cachedReverbBuffer) {
+        cachedReverbBuffer = createImpulseResponse(audioContext, 1.8, 1.1);
+      }
+      convolverNode.buffer = cachedReverbBuffer;
       
       // Connect: filter -> convolver -> wetGain
       bassFilterNode.connect(convolverNode);
@@ -128,7 +135,10 @@ export function setEqualizerPreset(mode: 'flat' | 'bass' | 'reverb' | 'hall') {
       
       // Dynamically instantiate new convolver with deep grand hall IR
       convolverNode = audioContext.createConvolver();
-      convolverNode.buffer = createImpulseResponse(audioContext, 3.8, 2.5);
+      if (!cachedHallBuffer) {
+        cachedHallBuffer = createImpulseResponse(audioContext, 3.8, 2.5);
+      }
+      convolverNode.buffer = cachedHallBuffer;
       
       // Connect: filter -> convolver -> wetGain
       bassFilterNode.connect(convolverNode);
