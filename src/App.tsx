@@ -14,7 +14,7 @@ import PlaylistStack from './components/PlaylistStack';
 import { Settings, Menu, Search, Library, Plus } from 'lucide-react';
 import AddToPlaylistModal from './components/AddToPlaylistModal';
 import { updateMediaSessionWithVinyl } from './services/mediaSession';
-import { initializeAudioPipeline, setEqualizerPreset } from './services/audioManager';
+import { initializeAudioPipeline, setEqualizerPreset, resumeAudioContext } from './services/audioManager';
 import './App.css';
 
 function App() {
@@ -150,6 +150,7 @@ function App() {
         audio.src = state.currentTrack.url;
         audio.load();
         if (state.isPlaying) {
+          resumeAudioContext();
           audio.play().catch(e => console.warn('Playback prevented', e));
         }
         // Update lock screen artwork
@@ -160,6 +161,7 @@ function App() {
       if (state.isPlaying !== prevIsPlaying) {
         prevIsPlaying = state.isPlaying;
         if (state.isPlaying) {
+          resumeAudioContext();
           audio.play().catch(e => console.warn('Playback prevented', e));
         } else {
           audio.pause();
@@ -191,6 +193,7 @@ function App() {
       if (document.visibilityState === 'visible' && audioRef.current) {
         const state = usePlayerStore.getState();
         if (state.isPlaying && audioRef.current.paused) {
+          resumeAudioContext();
           audioRef.current.play().catch(e => {
             console.warn('Resume after background failed', e);
             usePlayerStore.getState().pause();
@@ -200,6 +203,7 @@ function App() {
           audioRef.current.src = state.currentTrack.url;
           audioRef.current.load();
           if (state.isPlaying) {
+            resumeAudioContext();
             audioRef.current.play().catch(e => console.warn('Playback prevented', e));
           }
         }

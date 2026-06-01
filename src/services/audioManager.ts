@@ -70,6 +70,13 @@ export function initializeAudioPipeline(audioElement: HTMLAudioElement) {
 let cachedReverbBuffer: AudioBuffer | null = null;
 let cachedHallBuffer: AudioBuffer | null = null;
 
+export function resumeAudioContext() {
+  if (audioContext && audioContext.state === 'suspended') {
+    audioContext.resume();
+  }
+}
+
+
 export function setEqualizerPreset(mode: 'flat' | 'bass' | 'reverb' | 'hall') {
   if (!audioContext || !bassFilterNode || !dryGainNode || !wetGainNode) {
     return;
