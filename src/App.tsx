@@ -14,7 +14,7 @@ import PlaylistStack from './components/PlaylistStack';
 import { Settings, Menu, Search, Library, Plus } from 'lucide-react';
 import AddToPlaylistModal from './components/AddToPlaylistModal';
 import { updateMediaSessionWithVinyl } from './services/mediaSession';
-import { initializeAudioPipeline, setEqualizerPreset, resumeAudioContext } from './services/audioManager';
+import { initializeAudioPipeline, setEqualizerPreset, resumeAudioContext, suspendAudioContext } from './services/audioManager';
 import './App.css';
 
 function App() {
@@ -165,6 +165,7 @@ function App() {
           audio.play().catch(e => console.warn('Playback prevented', e));
         } else {
           audio.pause();
+          suspendAudioContext();
         }
       }
 

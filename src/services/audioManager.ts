@@ -76,7 +76,11 @@ export function resumeAudioContext() {
   }
 }
 
-
+export function suspendAudioContext() {
+  if (audioContext && audioContext.state === 'running') {
+    audioContext.suspend();
+  }
+}
 export function setEqualizerPreset(mode: 'flat' | 'bass' | 'reverb' | 'hall') {
   if (!audioContext || !bassFilterNode || !dryGainNode || !wetGainNode) {
     return;
