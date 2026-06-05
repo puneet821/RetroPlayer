@@ -17,6 +17,8 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 .vinyl-record {

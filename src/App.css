@@ -10,17 +10,19 @@
 
 .dynamic-bg {
   position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   background-size: cover;
   background-position: center;
-  filter: blur(100px) saturate(250%) brightness(0.8) contrast(1.2);
+  filter: blur(40px) saturate(200%) brightness(0.8) contrast(1.2);
+  transform: scale(1.5) translateZ(0);
   z-index: 1;
   transition: background-image 0.8s ease-in-out;
   pointer-events: none;
   opacity: 0.8;
+  will-change: transform, opacity;
 }
 
 .dynamic-bg-overlay {
