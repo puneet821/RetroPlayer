@@ -26,6 +26,9 @@ function createImpulseResponse(context: AudioContext, duration: number, decay: n
   return impulse;
 }
 
+let outputAudioElement: HTMLAudioElement | null = null;
+let mediaStreamDestination: MediaStreamAudioDestinationNode | null = null;
+
 export function initializeAudioPipeline(audioElement: HTMLAudioElement) {
   if (audioContext) return;
 
@@ -38,6 +41,9 @@ export function initializeAudioPipeline(audioElement: HTMLAudioElement) {
     bassFilterNode = audioContext.createBiquadFilter();
     dryGainNode = audioContext.createGain();
     wetGainNode = audioContext.createGain();
+    
+    // Create a MediaStream destination to pipe audio back to an HTML5 Audio element
+    mediaStreamDestination = audioContext.createMediaStreamDestination();
 
     // Configure Bass Filter (Low-shelf boost)
     bassFilterNode.type = 'lowshelf';
@@ -56,10 +62,32 @@ export function initializeAudioPipeline(audioElement: HTMLAudioElement) {
     // Split: 
     // 1. Dry Path: bassFilter -> dryGain -> destination
     bassFilterNode.connect(dryGainNode);
-    dryGainNode.connect(audioContext.destination);
+    dryGainNode.connect(mediaStreamDestination);
 
     // 2. Wet Path: wetGain -> destination (convolver connects dynamically)
-    wetGainNode.connect(audioContext.destination);
+    wetGainNode.connect(mediaStreamDestination);
+
+    // Create a secondary hidden audio element to play the stream
+    // This is the CRITICAL fix for iOS background playback:
+    // iOS will suspend audioContext.destination in the background, but it will
+    // keep playing an HTMLAudioElement with a stream source.
+    if (!outputAudioElement) {
+      outputAudioElement = new Audio();
+      outputAudioElement.crossOrigin = 'anonymous';
+      outputAudioElement.srcObject = mediaStreamDestination.stream;
+      
+      // Keep play/pause in sync with the main audio element
+      audioElement.addEventListener('play', () => {
+        if (audioContext?.state === 'suspended') {
+          audioContext.resume();
+        }
+        outputAudioElement?.play().catch(e => console.warn('Output audio play failed:', e));
+      });
+      
+      audioElement.addEventListener('pause', () => {
+        outputAudioElement?.pause();
+      });
+    }
 
   } catch (error) {
     console.error('Failed to initialize Web Audio API equalizer pipeline:', error);
