@@ -185,16 +185,8 @@ function App() {
 
   // Sync Equalizer preset state changes
   useEffect(() => {
-    // iOS heavily restricts Web Audio API in the background. Bypass it entirely on iOS devices.
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
-    
-    if (isIOS) {
-      console.warn("Web Audio API EQ is disabled on iOS to preserve background audio playback.");
-      return;
-    }
-
     if (audioRef.current) {
-      initializeAudioPipeline(audioRef.current);
+      // We only set the preset here. Initialization is deferred to actual user interaction (onPlay)
       setEqualizerPreset(eqMode);
     }
   }, [eqMode]);
@@ -260,7 +252,13 @@ function App() {
           if (audioRef.current) setDuration(audioRef.current.duration);
         }}
         onEnded={() => usePlayerStore.getState().playNext(audioRef.current || undefined)}
-        onPlay={() => usePlayerStore.setState({ isPlaying: true })}
+        onPlay={() => {
+          if (audioRef.current) {
+            initializeAudioPipeline(audioRef.current);
+            setEqualizerPreset(usePlayerStore.getState().eqMode);
+          }
+          usePlayerStore.setState({ isPlaying: true });
+        }}
         onPause={() => usePlayerStore.setState({ isPlaying: false })}
       />
 
