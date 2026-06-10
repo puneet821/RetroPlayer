@@ -185,6 +185,14 @@ function App() {
 
   // Sync Equalizer preset state changes
   useEffect(() => {
+    // iOS heavily restricts Web Audio API in the background. Bypass it entirely on iOS devices.
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
+    
+    if (isIOS) {
+      console.warn("Web Audio API EQ is disabled on iOS to preserve background audio playback.");
+      return;
+    }
+
     if (audioRef.current) {
       initializeAudioPipeline(audioRef.current);
       setEqualizerPreset(eqMode);
