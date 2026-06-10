@@ -26,8 +26,8 @@ function createImpulseResponse(context: AudioContext, duration: number, decay: n
   return impulse;
 }
 
-let silentAudioElement: HTMLAudioElement | null = null;
-const silentMp3 = 'data:audio/mp3;base64,//OExAAAAANIAAAAAExBTUUzLjk4LjIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+let outputAudioElement: HTMLAudioElement | null = null;
+let mediaStreamDestination: MediaStreamAudioDestinationNode | null = null;
 
 export function initializeAudioPipeline(audioElement: HTMLAudioElement) {
   if (audioContext) return;
@@ -41,6 +41,8 @@ export function initializeAudioPipeline(audioElement: HTMLAudioElement) {
     bassFilterNode = audioContext.createBiquadFilter();
     dryGainNode = audioContext.createGain();
     wetGainNode = audioContext.createGain();
+
+    mediaStreamDestination = audioContext.createMediaStreamDestination();
 
     // Configure Bass Filter (Low-shelf boost)
     bassFilterNode.type = 'lowshelf';
@@ -59,30 +61,33 @@ export function initializeAudioPipeline(audioElement: HTMLAudioElement) {
     // Split: 
     // 1. Dry Path: bassFilter -> dryGain -> destination
     bassFilterNode.connect(dryGainNode);
-    dryGainNode.connect(audioContext.destination);
+    dryGainNode.connect(mediaStreamDestination);
 
     // 2. Wet Path: wetGain -> destination (convolver connects dynamically)
-    wetGainNode.connect(audioContext.destination);
+    wetGainNode.connect(mediaStreamDestination);
 
-    // To keep Web Audio API (and the EQ) running in the background on iOS,
-    // we must play a silent standard HTML5 audio element. iOS Safari will
-    // respect this as an active media session and prevent AudioContext suspension.
-    if (!silentAudioElement) {
-      silentAudioElement = new Audio(silentMp3);
-      silentAudioElement.loop = true;
-      silentAudioElement.crossOrigin = 'anonymous';
+    // Route Web Audio output to a standard HTMLAudioElement.
+    // This is required for iOS Safari because audioContext.destination gets suspended
+    // when the screen locks, but an actively playing HTMLAudioElement does not!
+    if (!outputAudioElement) {
+      outputAudioElement = new Audio();
+      outputAudioElement.crossOrigin = 'anonymous';
+      outputAudioElement.srcObject = mediaStreamDestination.stream;
       
-      // Sync the silent background track with the main player
+      // Sync play/pause state
       audioElement.addEventListener('play', () => {
         if (audioContext?.state === 'suspended') {
           audioContext.resume();
         }
-        silentAudioElement?.play().catch(() => {});
+        outputAudioElement?.play().catch(e => console.warn('Output audio play failed:', e));
       });
       
       audioElement.addEventListener('pause', () => {
-        silentAudioElement?.pause();
+        outputAudioElement?.pause();
       });
+
+      // Since we initialize inside an onPlay event, we must trigger play immediately
+      outputAudioElement.play().catch(e => console.warn('Output audio initial play failed:', e));
     }
 
   } catch (error) {
