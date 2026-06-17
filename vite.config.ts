@@ -292,9 +292,11 @@ function saavnSearchProxy(): Plugin {
           return;
         }
 
+        const limit = url.searchParams.get('limit') || '20';
+
         try {
           // Step 1: Search for songs using JioSaavn's autocomplete/search API
-          const searchUrl = `https://www.jiosaavn.com/api.php?__call=search.getResults&_format=json&_marker=0&cc=in&includeMetaTags=0&ctx=web6dot0&api_version=4&q=${encodeURIComponent(query)}&p=1&n=5`;
+          const searchUrl = `https://www.jiosaavn.com/api.php?__call=search.getResults&_format=json&_marker=0&cc=in&includeMetaTags=0&ctx=web6dot0&api_version=4&q=${encodeURIComponent(query)}&p=1&n=${limit}`;
           const searchRes = await fetch(searchUrl, {
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
