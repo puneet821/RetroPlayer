@@ -230,7 +230,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       const nextIndex = state.currentQueueIndex + 1;
       const nextTrack = state.currentQueue[nextIndex];
       
-      // Let's make it simpler: if forcePlay is true, play it. If false, keep current isPlaying state.
       const playState = forcePlay;
       
       // Synchronous background loading (skip for YouTube videos)

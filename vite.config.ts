@@ -301,7 +301,7 @@ function saavnSearchProxy(): Plugin {
               'Accept': 'application/json',
             },
           });
-          const searchData: any = await searchRes.json();
+          const searchData = await searchRes.json() as any;
           const songs = searchData?.results || [];
 
           if (!songs.length) {
