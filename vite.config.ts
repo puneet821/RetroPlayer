@@ -264,7 +264,7 @@ function saavnSearchProxy(): Plugin {
       const key = CryptoJS.enc.Utf8.parse(DECRYPT_KEY);
       const decrypted = CryptoJS.DES.decrypt({
         ciphertext: CryptoJS.enc.Base64.parse(encryptedUrl)
-      } as any, key, {
+      }, key, {
         mode: CryptoJS.mode.ECB,
         padding: CryptoJS.pad.Pkcs7
       });
@@ -292,18 +292,16 @@ function saavnSearchProxy(): Plugin {
           return;
         }
 
-        const limit = url.searchParams.get('limit') || '20';
-
         try {
           // Step 1: Search for songs using JioSaavn's autocomplete/search API
-          const searchUrl = `https://www.jiosaavn.com/api.php?__call=search.getResults&_format=json&_marker=0&cc=in&includeMetaTags=0&ctx=web6dot0&api_version=4&q=${encodeURIComponent(query)}&p=1&n=${limit}`;
+          const searchUrl = `https://www.jiosaavn.com/api.php?__call=search.getResults&_format=json&_marker=0&cc=in&includeMetaTags=0&ctx=web6dot0&api_version=4&q=${encodeURIComponent(query)}&p=1&n=5`;
           const searchRes = await fetch(searchUrl, {
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
               'Accept': 'application/json',
             },
           });
-          const searchData = await searchRes.json() as any;
+          const searchData = await searchRes.json();
           const songs = searchData?.results || [];
 
           if (!songs.length) {
