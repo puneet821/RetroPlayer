@@ -10,7 +10,7 @@ import { usePlayerStore } from './stores/usePlayerStore';
 import { useThemeStore } from './stores/useThemeStore';
 import { handleSpotifyCallback } from './services/spotifyAuth';
 import { fetchUserPlaylists } from './services/spotifyApi';
-import { getAutoPlayRecommendation, searchSongs } from './services/api';
+import { searchSongs } from './services/api';
 import PlaylistStack from './components/PlaylistStack';
 import { Settings, Menu, Search, Library, Plus } from 'lucide-react';
 import AddToPlaylistModal from './components/AddToPlaylistModal';
@@ -53,8 +53,8 @@ function App() {
     }
   }, []);
 
-  const handleTrackEnded = React.useCallback((forcePlay?: boolean) => {
-    const isPlaying = forcePlay ?? usePlayerStore.getState().isPlaying;
+  const handleTrackEnded = React.useCallback((forcePlay?: boolean | any) => {
+    const isPlaying = typeof forcePlay === 'boolean' ? forcePlay : usePlayerStore.getState().isPlaying;
     usePlayerStore.getState().playNext(audioRef.current || undefined, isPlaying);
   }, []);
 
