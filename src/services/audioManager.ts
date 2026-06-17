@@ -142,8 +142,8 @@ export function setEqualizerPreset(mode: 'flat' | 'bass' | 'reverb' | 'hall') {
       break;
 
     case 'bass':
-      // Heavy deep low boost (+14 dB) for a very warm, prominent bass response!
-      bassFilterNode.gain.setTargetAtTime(14, now, 0.02);
+      // Heavy deep low boost (+10 dB) for a very warm, prominent bass response!
+      bassFilterNode.gain.setTargetAtTime(10, now, 0.02);
       // Reverb wet mix to 0, dry mix to 1
       dryGainNode.gain.setTargetAtTime(1.0, now, 0.02);
       wetGainNode.gain.setTargetAtTime(0.0, now, 0.02);
@@ -176,7 +176,7 @@ export function setEqualizerPreset(mode: 'flat' | 'bass' | 'reverb' | 'hall') {
       // Dynamically instantiate new convolver with deep grand hall IR
       convolverNode = audioContext.createConvolver();
       if (!cachedHallBuffer) {
-        cachedHallBuffer = createImpulseResponse(audioContext, 3.8, 2.5);
+        cachedHallBuffer = createImpulseResponse(audioContext, 10, 2.5);
       }
       convolverNode.buffer = cachedHallBuffer;
       

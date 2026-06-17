@@ -221,6 +221,131 @@
   background: rgba(231, 76, 60, 0.1);
 }
 
+.backup-restore-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.backup-btn, .restore-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.backup-btn:hover, .restore-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  transform: translateY(-2px);
+}
+
+/* SongShift Section */
+.songshift-section {
+  background: rgba(29, 185, 84, 0.05);
+  border: 1px solid rgba(29, 185, 84, 0.15);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.songshift-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #1DB954 !important;
+  font-size: 1rem !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.songshift-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.songshift-input-row .glass-input {
+  background: transparent !important;
+  border: none !important;
+  padding: 6px 4px !important;
+  font-size: 0.85rem;
+}
+
+.songshift-input-row .glass-input:focus {
+  background: transparent !important;
+}
+
+.songshift-go-btn {
+  background: #1DB954;
+  border: none;
+  color: white;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.songshift-go-btn:hover:not(:disabled) {
+  background: #1ed760;
+  transform: scale(1.1);
+  box-shadow: 0 0 16px rgba(29, 185, 84, 0.4);
+}
+
+.songshift-go-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.songshift-status {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 0 4px;
+  line-height: 1.4;
+  animation: fadeIn 0.3s ease;
+}
+
+.songshift-hint {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.45);
+  margin: -4px 0 0 0;
+  line-height: 1.3;
+}
+
+.spin-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }

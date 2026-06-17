@@ -8,12 +8,15 @@ const PlaybackControls: React.FC = () => {
   const togglePlay = usePlayerStore((state) => state.togglePlay);
   const playNext = usePlayerStore((state) => state.playNext);
   const playPrevious = usePlayerStore((state) => state.playPrevious);
+  const isAutoPlayLoading = usePlayerStore((state) => state.isAutoPlayLoading);
 
   return (
     <div className="playback-controls">
-      <button className="control-group" onClick={togglePlay}>
+      <button className="control-group" onClick={togglePlay} disabled={isAutoPlayLoading}>
         <div className="pill-btn large-pill"></div>
-        <span className="control-label">{isPlaying ? 'PAUSE' : 'PLAY'}</span>
+        <span className="control-label">
+          {isAutoPlayLoading ? 'LOADING...' : (isPlaying ? 'PAUSE' : 'PLAY')}
+        </span>
       </button>
       
       <div className="right-controls">

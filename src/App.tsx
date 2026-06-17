@@ -10,12 +10,24 @@ import { usePlayerStore } from './stores/usePlayerStore';
 import { useThemeStore } from './stores/useThemeStore';
 import { handleSpotifyCallback } from './services/spotifyAuth';
 import { fetchUserPlaylists } from './services/spotifyApi';
+import { getAutoPlayRecommendation, searchSongs } from './services/api';
 import PlaylistStack from './components/PlaylistStack';
 import { Settings, Menu, Search, Library, Plus } from 'lucide-react';
 import AddToPlaylistModal from './components/AddToPlaylistModal';
 import { updateMediaSessionWithVinyl } from './services/mediaSession';
 import { initializeAudioPipeline, setEqualizerPreset, resumeAudioContext, suspendAudioContext } from './services/audioManager';
+import YouTube from 'react-youtube';
 import './App.css';
+
+const YOUTUBE_OPTS = {
+  height: '0',
+  width: '0',
+  playerVars: {
+    autoplay: 0,
+    controls: 0,
+    disablekb: 1,
+  },
+};
 
 function App() {
   const { currentTrack, setTrack, setPosition, setDuration, position, duration, spotifyToken, setSpotifyToken, setPlaylists, isPlaylistViewOpen, setIsPlaylistViewOpen, eqMode, setEqMode } = usePlayerStore();
@@ -25,6 +37,36 @@ function App() {
   const [showSideMenu, setShowSideMenu] = React.useState(false);
   const [showSearch, setShowSearch] = React.useState(false);
   const [addingTrack, setAddingTrack] = React.useState<any | null>(null);
+  const ytPlayerRef = React.useRef<any>(null);
+  const skipErrorCount = React.useRef(0);
+  const lastErrorTime = React.useRef(0);
+
+  const handleYtReady = React.useCallback((e: any) => {
+    ytPlayerRef.current = e.target;
+    e.target.setVolume(100);
+    const duration = e.target.getDuration();
+    if (!isNaN(duration) && duration > 0) {
+      usePlayerStore.getState().setDuration(duration);
+    }
+    if (usePlayerStore.getState().isPlaying) {
+      e.target.playVideo();
+    }
+  }, []);
+
+  const handleTrackEnded = React.useCallback((forcePlay?: boolean) => {
+    const isPlaying = forcePlay ?? usePlayerStore.getState().isPlaying;
+    usePlayerStore.getState().playNext(audioRef.current || undefined, isPlaying);
+  }, []);
+
+  const handleYtStateChange = React.useCallback((e: any) => {
+    if (e.data === 0) {
+      handleTrackEnded();
+    } else if (e.data === 1) {
+      usePlayerStore.setState({ isPlaying: true });
+    } else if (e.data === 2) {
+      usePlayerStore.setState({ isPlaying: false });
+    }
+  }, [handleTrackEnded]);
 
   // Initialize Audio Element and Check Spotify Callback
   useEffect(() => {
@@ -139,20 +181,33 @@ function App() {
   useEffect(() => {
     let prevTrackUrl = '';
     let prevIsPlaying = false;
+    let ytPollingInterval: any = null;
 
     const unsub = usePlayerStore.subscribe((state) => {
       const audio = audioRef.current;
-      if (!audio) return;
-
+      const ytPlayer = ytPlayerRef.current;
+      
       // Track changed — load new source
       if (state.currentTrack && state.currentTrack.url !== prevTrackUrl) {
         prevTrackUrl = state.currentTrack.url;
-        audio.src = state.currentTrack.url;
-        audio.load();
-        if (state.isPlaying) {
-          resumeAudioContext();
-          audio.play().catch(e => console.warn('Playback prevented', e));
+        
+        const isYouTube = state.currentTrack.url.startsWith('youtube:');
+
+        if (!isYouTube) {
+          if (audio) {
+            // Prevent double-loading: if playNext already set the src synchronously, don't set it again.
+            if (audio.getAttribute('src') !== state.currentTrack.url) {
+              audio.src = state.currentTrack.url;
+              audio.load();
+            }
+
+            if (state.isPlaying) {
+              resumeAudioContext();
+              audio.play().catch(e => console.warn('Playback prevented', e));
+            }
+          }
         }
+        
         // Update lock screen artwork
         updateMediaSessionWithVinyl(state.currentTrack.title, state.currentTrack.artist, state.currentTrack.artwork);
       }
@@ -160,28 +215,74 @@ function App() {
       // Play/pause changed
       if (state.isPlaying !== prevIsPlaying) {
         prevIsPlaying = state.isPlaying;
+        
+        const isYouTube = state.currentTrack?.url?.startsWith('youtube:');
+        
         if ('mediaSession' in navigator) {
           navigator.mediaSession.playbackState = state.isPlaying ? 'playing' : 'paused';
         }
-        if (state.isPlaying) {
-          resumeAudioContext();
-          audio.play().catch(e => console.warn('Playback prevented', e));
+        
+        if (!isYouTube) {
+          if (audio) {
+            if (state.isPlaying) {
+              resumeAudioContext();
+              audio.play().catch(e => console.warn('Playback prevented', e));
+            } else {
+              audio.pause();
+              suspendAudioContext();
+            }
+          }
+        } else if (ytPlayer && typeof ytPlayer.playVideo === 'function') {
+          // YouTube play/pause logic
+          if (state.isPlaying) {
+            ytPlayer.playVideo();
+          } else {
+            ytPlayer.pauseVideo();
+          }
+        }
+
+        // YouTube Position Polling
+        if (isYouTube && state.isPlaying) {
+          if (!ytPollingInterval) {
+            ytPollingInterval = setInterval(() => {
+              const yt = ytPlayerRef.current;
+              if (yt && typeof yt.getCurrentTime === 'function' && typeof yt.getDuration === 'function') {
+                const currentTime = yt.getCurrentTime();
+                const totalTime = yt.getDuration();
+                // Ensure we don't dispatch NaN to the store
+                if (!isNaN(currentTime)) setPosition(currentTime);
+                if (!isNaN(totalTime) && totalTime > 0) setDuration(totalTime);
+              }
+            }, 1000);
+          }
         } else {
-          audio.pause();
-          suspendAudioContext();
+          if (ytPollingInterval) {
+            clearInterval(ytPollingInterval);
+            ytPollingInterval = null;
+          }
         }
       }
 
       // Seek requested
       if (state.requestedSeekTime !== null) {
-        audio.currentTime = state.requestedSeekTime;
+        const isYouTube = state.currentTrack?.url?.startsWith('youtube:');
+        
+        if (!isYouTube && audio) {
+          audio.currentTime = state.requestedSeekTime;
+        } else if (isYouTube && ytPlayer && typeof ytPlayer.seekTo === 'function') {
+          ytPlayer.seekTo(state.requestedSeekTime, true);
+        }
+        
         setPosition(state.requestedSeekTime);
         usePlayerStore.getState().requestSeek(null);
       }
     });
 
-    return () => unsub();
-  }, [setPosition]);
+    return () => {
+      unsub();
+      if (ytPollingInterval) clearInterval(ytPollingInterval);
+    };
+  }, [setPosition, setDuration]);
 
   // Sync Equalizer preset state changes
   useEffect(() => {
@@ -251,16 +352,87 @@ function App() {
         onLoadedMetadata={() => {
           if (audioRef.current) setDuration(audioRef.current.duration);
         }}
-        onEnded={() => usePlayerStore.getState().playNext(audioRef.current || undefined)}
+        onEnded={handleTrackEnded}
         onPlay={() => {
           if (audioRef.current) {
             initializeAudioPipeline(audioRef.current);
             setEqualizerPreset(usePlayerStore.getState().eqMode);
           }
+          // Track played successfully — reset the error circuit breaker
+          skipErrorCount.current = 0;
           usePlayerStore.setState({ isPlaying: true });
         }}
-        onPause={() => usePlayerStore.setState({ isPlaying: false })}
+        onPause={(e) => {
+          // Ignore phantom pause events caused by the browser aborting playback when the audio source is changed.
+          // readyState >= 2 means the media is loaded and playable, so it's a genuine pause.
+          if (e.currentTarget.readyState >= 2) {
+            usePlayerStore.setState({ isPlaying: false });
+          }
+        }}
+        onError={async () => {
+          const now = Date.now();
+          if (now - lastErrorTime.current > 5000) skipErrorCount.current = 0;
+          lastErrorTime.current = now;
+          skipErrorCount.current++;
+
+          if (skipErrorCount.current >= 3) {
+            console.warn('Too many consecutive audio errors. Stopping.');
+            usePlayerStore.setState({ isPlaying: false });
+            skipErrorCount.current = 0;
+            return;
+          }
+
+          // Self-healing: try to re-fetch a fresh URL from JioSaavn
+          const track = usePlayerStore.getState().currentTrack;
+          if (track) {
+            console.warn(`Broken URL for "${track.title}". Re-fetching from JioSaavn...`);
+            try {
+              const results = await searchSongs(`${track.title} ${track.artist}`, 5);
+              const fresh = results.find(t => t.url.includes('saavncdn.com'));
+              if (fresh && audioRef.current) {
+                // Patch the track with the fresh URL and play it
+                const updatedTrack = { ...track, url: fresh.url, artwork: fresh.artwork || track.artwork };
+                usePlayerStore.setState({ currentTrack: updatedTrack, isPlaying: true, position: 0 });
+                
+                // Also patch it in the queue so it doesn't break again
+                const state = usePlayerStore.getState();
+                const updatedQueue = [...state.currentQueue];
+                if (state.currentQueueIndex >= 0 && state.currentQueueIndex < updatedQueue.length) {
+                  updatedQueue[state.currentQueueIndex] = updatedTrack;
+                  usePlayerStore.setState({ currentQueue: updatedQueue });
+                }
+                audioRef.current.src = fresh.url;
+                audioRef.current.load();
+                audioRef.current.play().catch(() => {});
+                console.log(`✅ Self-healed "${track.title}"`);
+                return;
+              }
+            } catch (e) {
+              console.warn(`Self-heal failed for "${track.title}"`, e);
+            }
+          }
+
+          // If self-heal failed, skip to next
+          console.warn(`Skipping "${track?.title}" (attempt ${skipErrorCount.current}/3)`);
+          handleTrackEnded();
+        }}
       />
+      {/* Hidden YouTube Player */}
+      <div style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden', opacity: 0, pointerEvents: 'none' }}>
+        {currentTrack?.url?.startsWith('youtube:') && (
+          <YouTube 
+            videoId={currentTrack.url.replace('youtube:', '')}
+            opts={YOUTUBE_OPTS}
+            onReady={handleYtReady}
+            onStateChange={handleYtStateChange}
+            onError={(e) => {
+              console.warn("YouTube player error. Skipping track...", e);
+              const isPlaying = usePlayerStore.getState().isPlaying;
+              handleTrackEnded(isPlaying);
+            }}
+          />
+        )}
+      </div>
 
       {currentTrack?.artwork && (
         <div 

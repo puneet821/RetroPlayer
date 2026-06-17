@@ -29,12 +29,15 @@ interface PlayerState {
   duration: number;
   setSpotifyToken: (token: string | null) => void;
   setPlaylists: (playlists: SpotifyPlaylist[]) => void;
-  
+  updatePlaylistCover: (playlistId: string, coverUrl: string) => void;
   // Custom Playlist Actions
   createCustomPlaylist: (name: string) => void;
   addTrackToCustomPlaylist: (playlistId: string, track: Track) => void;
   removeTrackFromCustomPlaylist: (playlistId: string, trackId: string) => void;
   deleteCustomPlaylist: (playlistId: string) => void;
+  exportPlaylists: () => void;
+  importPlaylists: (importedPlaylists: CustomPlaylist[]) => void;
+  createCustomPlaylistWithTracks: (name: string, tracks: Track[]) => void;
   
   setIsPlaylistViewOpen: (isOpen: boolean) => void;
   play: () => void;
@@ -55,8 +58,12 @@ interface PlayerState {
   // Queue Management
   currentQueue: Track[];
   currentQueueIndex: number;
+  queueOrigin: 'playlist' | 'search' | 'autoplay';
+  isAutoPlayLoading: boolean;
+  setIsAutoPlayLoading: (loading: boolean) => void;
   setQueue: (tracks: Track[], startIndex: number) => void;
-  playNext: (audioElement?: HTMLAudioElement) => void;
+  appendAutoPlayTrack: (track: Track) => void;
+  playNext: (audioElement?: HTMLAudioElement, forcePlay?: boolean) => void;
   playPrevious: (audioElement?: HTMLAudioElement) => void;
 }
 
@@ -73,7 +80,7 @@ const saveCustomPlaylists = (playlists: CustomPlaylist[]) => {
   localStorage.setItem('retro_custom_playlists', JSON.stringify(playlists));
 };
 
-export const usePlayerStore = create<PlayerState>((set) => ({
+export const usePlayerStore = create<PlayerState>((set, get) => ({
   spotifyToken: localStorage.getItem('spotify_access_token') || null,
   playlists: [],
   customPlaylists: loadCustomPlaylists(),
@@ -85,11 +92,47 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   isSeeking: false,
   requestedSeekTime: null,
   eqMode: 'flat',
+  isAutoPlayLoading: false,
   
   setSpotifyToken: (token) => set({ spotifyToken: token }),
   setPlaylists: (playlists) => set({ playlists }),
   setEqMode: (eqMode) => set({ eqMode }),
+  setIsAutoPlayLoading: (loading) => set({ isAutoPlayLoading: loading }),
   
+  exportPlaylists: () => {
+    const playlists = get().customPlaylists;
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(playlists));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href",     dataStr);
+    downloadAnchorNode.setAttribute("download", "retro_playlists.json");
+    document.body.appendChild(downloadAnchorNode); // required for firefox
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+  },
+  
+  importPlaylists: (importedPlaylists) => set((state) => {
+    // Optionally merge or overwrite. We will just overwrite/merge by ID.
+    // Let's do a simple overwrite for now, or append missing ones.
+    const currentIds = new Set(state.customPlaylists.map(p => p.id));
+    const newPlaylists = importedPlaylists.filter(p => !currentIds.has(p.id));
+    const updated = [...state.customPlaylists, ...newPlaylists];
+    saveCustomPlaylists(updated);
+    return { customPlaylists: updated };
+  }),
+
+  createCustomPlaylistWithTracks: (name, tracks) => set((state) => {
+    const newPlaylist: CustomPlaylist = {
+      id: Date.now().toString() + Math.random().toString(36).substring(7),
+      name,
+      tracks,
+      createdAt: Date.now(),
+      coverUrl: tracks[0]?.artwork,
+    };
+    const updated = [...state.customPlaylists, newPlaylist];
+    saveCustomPlaylists(updated);
+    return { customPlaylists: updated };
+  }),
+
   createCustomPlaylist: (name) => set((state) => {
     const newPlaylist: CustomPlaylist = {
       id: Date.now().toString(),
@@ -98,6 +141,14 @@ export const usePlayerStore = create<PlayerState>((set) => ({
       createdAt: Date.now(),
     };
     const updated = [...state.customPlaylists, newPlaylist];
+    saveCustomPlaylists(updated);
+    return { customPlaylists: updated };
+  }),
+
+  updatePlaylistCover: (playlistId, coverUrl) => set((state) => {
+    const updated = state.customPlaylists.map(p => 
+      p.id === playlistId ? { ...p, coverUrl } : p
+    );
     saveCustomPlaylists(updated);
     return { customPlaylists: updated };
   }),
@@ -148,31 +199,54 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   
   currentQueue: [],
   currentQueueIndex: -1,
+  queueOrigin: 'playlist',
   
-  setQueue: (tracks, startIndex) => set({ 
-    currentQueue: tracks, 
-    currentQueueIndex: startIndex,
-    currentTrack: tracks[startIndex] || null,
-    isPlaying: !!tracks[startIndex],
-    position: 0
-  }),
+  setQueue: (tracks, startIndex) => {
+    // Sanitize older imported playlists that might have raw 11-character YouTube IDs instead of valid URLs
+    const sanitizedTracks = tracks.map(t => {
+      if (t.url && /^[a-zA-Z0-9_-]{11}$/.test(t.url)) {
+        return { ...t, url: `youtube:${t.url}` };
+      }
+      return t;
+    });
+
+    set({ 
+      currentQueue: sanitizedTracks, 
+      currentQueueIndex: startIndex,
+      currentTrack: sanitizedTracks[startIndex] || null,
+      isPlaying: !!sanitizedTracks[startIndex],
+      position: 0,
+      queueOrigin: 'playlist'
+    });
+  },
   
-  playNext: (audioElement) => set((state) => {
+  appendAutoPlayTrack: (track) => set((state) => ({
+    currentQueue: [...state.currentQueue, track],
+    queueOrigin: 'autoplay'
+  })),
+  
+  playNext: (audioElement, forcePlay = true) => set((state) => {
     if (state.currentQueue.length > 0 && state.currentQueueIndex < state.currentQueue.length - 1) {
       const nextIndex = state.currentQueueIndex + 1;
       const nextTrack = state.currentQueue[nextIndex];
       
-      // Synchronous background loading
-      if (audioElement) {
+      const shouldPlay = forcePlay && state.isPlaying !== false; // if it was already paused and forcePlay isn't strictly true, keep it paused, or if forcePlay is explicitly passed. Actually let's just use state.isPlaying if forcePlay isn't provided. Wait, standard playNext ALWAYS plays unless we specify otherwise.
+      // Let's make it simpler: if forcePlay is true, play it. If false, keep current isPlaying state.
+      const playState = forcePlay;
+      
+      // Synchronous background loading (skip for YouTube videos)
+      if (audioElement && !nextTrack.url.startsWith('youtube:')) {
         audioElement.src = nextTrack.url;
         audioElement.load();
-        audioElement.play().catch(e => console.warn('Sync playback prevented', e));
+        if (playState) {
+          audioElement.play().catch(e => console.warn('Sync playback prevented', e));
+        }
       }
       
       return {
         currentQueueIndex: nextIndex,
         currentTrack: nextTrack,
-        isPlaying: true,
+        isPlaying: playState,
         position: 0
       };
     }
@@ -189,8 +263,8 @@ export const usePlayerStore = create<PlayerState>((set) => ({
       const prevIndex = state.currentQueueIndex - 1;
       const prevTrack = state.currentQueue[prevIndex];
       
-      // Synchronous background loading
-      if (audioElement) {
+      // Synchronous background loading (skip for YouTube videos)
+      if (audioElement && !prevTrack.url.startsWith('youtube:')) {
         audioElement.src = prevTrack.url;
         audioElement.load();
         audioElement.play().catch(e => console.warn('Sync playback prevented', e));
@@ -213,7 +287,8 @@ export const usePlayerStore = create<PlayerState>((set) => ({
     position: 0,
     // Clear queue when a single track is played directly (e.g., from search)
     currentQueue: [track],
-    currentQueueIndex: 0
+    currentQueueIndex: 0,
+    queueOrigin: 'search'
   }),
   setPosition: (position) => set({ position }),
   setDuration: (duration) => set({ duration }),
